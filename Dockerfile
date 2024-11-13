@@ -15,5 +15,7 @@ COPY ./scripts .
 # Combine RUN commands and use absolute paths
 RUN chmod u+x ./setup.sh && ./setup.sh
 
+WORKDIR /home/postgres
+
 USER postgres
 
