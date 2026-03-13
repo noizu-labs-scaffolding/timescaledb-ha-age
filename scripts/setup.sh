@@ -11,38 +11,38 @@ update_apt
 # Build Deps
 #-------------------------------------------------------------------------------
 print_heading "Installing Build Deps"
-apt install -y wget build-essential libreadline-dev zlib1g-dev flex bison libicu-dev pkg-config icu-devtools  clang-15 llvm-15
+apt install -y wget build-essential libreadline-dev zlib1g-dev flex bison libicu-dev pkg-config icu-devtools clang-15 llvm-15
 early_exit $?
 
 
 #-------------------------------------------------------------------------------
 # Fetch Repos
 #-------------------------------------------------------------------------------
-print_heading "Downloading postgres 16.4 source and age 1.5.0"
+print_heading "Downloading postgres 17.9 source and age 1.7.0"
 early_exit $?
-wget https://ftp.postgresql.org/pub/source/v16.4/postgresql-16.4.tar.gz
+wget https://ftp.postgresql.org/pub/source/v17.9/postgresql-17.9.tar.gz
 early_exit $?
-wget https://dlcdn.apache.org/age/PG16/1.5.0/apache-age-1.5.0-src.tar.gz
+wget https://dlcdn.apache.org/age/PG17/1.7.0/apache-age-1.7.0-src.tar.gz
 early_exit $?
 
 #-------------------------------------------------------------------------------
 # Building Postgres
 #-------------------------------------------------------------------------------
 print_heading "Building Postgres"
-tar -xvf postgresql-16.4.tar.gz && tar -xvf apache-age-1.5.0-src.tar.gz
-early_exit $? 
-cd postgresql-16.4 && ./configure
+tar -xvf postgresql-17.9.tar.gz && tar -xvf apache-age-1.7.0-src.tar.gz
+early_exit $?
+cd postgresql-17.9 && ./configure
 early_exit $?
 make install
 early_exit $?
 print_heading "Bin Placing Headers"
-cp -rL src/include/. /usr/include/postgresql/16/server/
+cp -rL src/include/. /usr/include/postgresql/17/server/
 
 #-------------------------------------------------------------------------------
-# Building P
+# Building AGE
 #-------------------------------------------------------------------------------
 print_heading "Installing Age"
-cd ../apache-age-1.5.0
+cd ../apache-age-1.7.0
 make install
 early_exit $?
 

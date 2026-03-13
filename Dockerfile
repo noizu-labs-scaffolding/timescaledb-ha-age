@@ -1,6 +1,5 @@
 # Use specific version for reproducible builds
-FROM timescale/timescaledb-ha:pg16.4-ts2.17.1-all
-
+FROM timescale/timescaledb-ha:pg17.9-ts2.25.2-all
 # MAINTAINER is deprecated, use LABEL instead
 LABEL maintainer="Keith Brings <keith.brings@noizu.com>"
 
