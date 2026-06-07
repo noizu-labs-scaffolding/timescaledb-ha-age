@@ -1,0 +1,16 @@
+-- Example bootdb.d script. Runs on EVERY container start, so keep it idempotent.
+-- Rename to e.g. `10-bootstrap.sql` and mount into /docker-entrypoint-bootdb.d/.
+
+-- Make sure expected extensions exist (cheap no-op if already present).
+CREATE EXTENSION IF NOT EXISTS age CASCADE;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+-- Re-assert a runtime setting on every boot.
+ALTER SYSTEM SET pg_stat_statements.track = 'all';
+SELECT pg_reload_conf();
+
+-- Ensure an AGE graph exists without erroring if it already does.
+LOAD 'age';
+SET search_path = ag_catalog, "$user", public;
+SELECT create_graph('app_graph')
+WHERE NOT EXISTS (SELECT 1 FROM ag_catalog.ag_graph WHERE name = 'app_graph');

@@ -16,11 +16,14 @@ IMAGE="${IMAGE:-noizu/timescaledb-ha-with-age}"
 PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 BUILDX_OUTPUT="${BUILDX_OUTPUT:---push}"
 BUILDER="${BUILDER:-}"
+# Image revision — bump when the image changes without an AGE/PG/TS version
+# change (e.g. entrypoint/script updates). Set IMAGE_REVISION="" to omit.
+IMAGE_REVISION="${IMAGE_REVISION:-r2}"
 
 # Derive a descriptive version tag from the base image tag, e.g.
-#   pg17.9-ts2.25.2-all  ->  pg17.9-ts2.25.2-all-age1.7.0
+#   pg17.9-ts2.25.2-all  ->  pg17.9-ts2.25.2-all-age1.7.0-r2
 BASE_TAG="${BASE_IMAGE##*:}"
-VERSION_TAG="${BASE_TAG}-age${AGE_VERSION}"
+VERSION_TAG="${BASE_TAG}-age${AGE_VERSION}${IMAGE_REVISION:+-${IMAGE_REVISION}}"
 
 build_args=(
   --build-arg "BASE_IMAGE=${BASE_IMAGE}"

@@ -52,6 +52,7 @@ PG_VERSION=16.9 PG_MAJOR=16 AGE_VERSION=1.5.0 \
 | `PLATFORMS`           | `linux/amd64,linux/arm64`                             | Buildx target platforms.                                       |
 | `BUILDX_OUTPUT`       | `--push`                                              | Buildx output mode, e.g. `--load` for a single local platform. |
 | `BUILDER`             | _(empty)_                                             | Optional Buildx builder name.                                  |
+| `IMAGE_REVISION`      | `r2`                                                 | Revision suffix on the version tag (e.g. `…-age1.7.0-r2`); set empty to omit. |
 | `CONTRIB_EXTENSIONS`  | the list above                                       | Space-separated contrib modules to build & install.           |
 | `PRELOAD_LIBRARIES`   | `timescaledb, pg_stat_statements, auto_explain, age` | Default `shared_preload_libraries` (runtime-overridable).      |
 | `DEFAULT_EXTENSIONS`  | `timescaledb,pg_stat_statements,age`                | Extensions `CREATE`d on first boot (runtime-overridable).      |
@@ -92,6 +93,46 @@ docker run -d \
 > entrypoint). In a Patroni-managed HA deployment, cluster configuration is
 > owned by Patroni — set `shared_preload_libraries` through your Patroni bootstrap
 > config there instead.
+
+## Boot-time scripts (`bootdb.d`)
+
+`/docker-entrypoint-initdb.d` only runs **once**, on first cluster
+initialization. This image adds a companion hook that runs on **every** start:
+
+- **`/docker-entrypoint-initdb.d/`** — runs once, on first init (empty data dir).
+- **`/docker-entrypoint-bootdb.d/`** — runs on every start/reload, after the
+  server is accepting connections.
+
+The image ships `bootdb.d` empty. Mount or bake in your own files — same
+conventions as `initdb.d` (processed in filename order):
+`*.sh` (executed if `+x`, else sourced), `*.sql`, `*.sql.gz`, `*.sql.xz`,
+`*.sql.zst`. Anything else is ignored.
+
+```bash
+docker run -d \
+  -e POSTGRES_PASSWORD=secret \
+  -v "$PWD/my-boot-scripts:/docker-entrypoint-bootdb.d:ro" \
+  noizu/timescaledb-ha-with-age:latest
+```
+
+Boot scripts run as `POSTGRES_USER` against `POSTGRES_DB` over the local socket,
+in the background, and never abort the container — a failing script is logged
+and the next one still runs. Because they run on every start, **make them
+idempotent** (`CREATE ... IF NOT EXISTS`, `ALTER SYSTEM`, `INSERT ... ON
+CONFLICT`, …). See `scripts/bootdb.d/` for a template.
+
+Tunables (override at `docker run` time):
+
+| Env                       | Default                       | Effect                                            |
+| ------------------------- | ----------------------------- | ------------------------------------------------- |
+| `PG_BOOTDB_DIR`           | `/docker-entrypoint-bootdb.d` | Directory of boot scripts.                        |
+| `PG_BOOTDB_TIMEOUT`       | `90`                          | Seconds to wait for the server before giving up.  |
+| `PG_BOOTDB_PROBE_HOST`    | `127.0.0.1`                   | Host probed for readiness.                         |
+| `PG_BOOTDB_ON_ERROR_STOP` | `1`                           | `psql ON_ERROR_STOP` for `*.sql` files.           |
+| `PG_SKIP_BOOTDB`          | `0`                           | Set to `1` to disable the boot hook.              |
+
+> Like the `initdb.d` flow, this hook rides on the standard
+> `/docker-entrypoint.sh` entrypoint. A Patroni-managed entrypoint bypasses it.
 
 ## Notes
 

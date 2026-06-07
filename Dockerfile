@@ -34,6 +34,15 @@ RUN chmod u+x ./setup.sh && ./setup.sh
 COPY ./scripts/initdb/ /docker-entrypoint-initdb.d/
 RUN chmod +x /docker-entrypoint-initdb.d/*.sh
 
+# Entrypoint wrapper that adds a boot-time hook on top of the base entrypoint:
+# files in /docker-entrypoint-bootdb.d/ run on EVERY start, after the server is
+# up (the base initdb.d flow only runs once, on first cluster init). The
+# directory ships empty — mount or bake in your own
+# *.sh / *.sql[.gz|.xz|.zst] files.
+COPY ./scripts/entrypoint.sh /usr/local/bin/timescaledb-ha-age-entrypoint.sh
+RUN chmod +x /usr/local/bin/timescaledb-ha-age-entrypoint.sh \
+    && mkdir -p /docker-entrypoint-bootdb.d
+
 # Runtime defaults read by the init scripts (override with `docker run -e ...`).
 ENV PG_PRELOAD_LIBRARIES=${PRELOAD_LIBRARIES} \
     PG_DEFAULT_EXTENSIONS=${DEFAULT_EXTENSIONS} \
@@ -41,3 +50,7 @@ ENV PG_PRELOAD_LIBRARIES=${PRELOAD_LIBRARIES} \
 
 WORKDIR /home/postgres
 USER postgres
+
+# Wrap the base entrypoint (/docker-entrypoint.sh) to add the bootdb.d hook.
+# CMD is inherited from the base image (["postgres"]).
+ENTRYPOINT ["/usr/local/bin/timescaledb-ha-age-entrypoint.sh"]
